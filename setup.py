@@ -10,6 +10,9 @@ with io.open('README.md', 'rt', encoding='utf8') as f:
 with io.open('httpie_ovh_auth.py', 'rt', encoding='utf8') as f:
     version = re.search(r'__version__ = \'(.*?)\'', f.read()).group(1)
 
+with io.open('requirements.txt', 'rt', encoding='utf-8') as f:
+    requirements = f.read()
+
 setup(
     name='httpie-ovh-auth',
     description='OVH auth plugin for HTTPie.',
@@ -28,9 +31,7 @@ setup(
             'httpie_ovh_auth = httpie_ovh_auth:OvhAuthPlugin'
         ]
     },
-    install_requires=[
-        'httpie>=1.0.0'
-    ],
+    install_requires=requirements.splitlines(),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python',

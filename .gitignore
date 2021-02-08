@@ -1,0 +1,8 @@
+/venv/
+.*.swp
+*.egg-info
+/.tox
+__pycache__/
+/.settings/
+/.pydevproject
+/.project
