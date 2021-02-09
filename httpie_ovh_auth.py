@@ -14,32 +14,38 @@ __author__ = 'Laurent Almeras'
 __licence__ = 'BSD'
 
 
+def sign(secret_key: str, consumer_key: str, method: str, url: str, body: str,
+         timestamp: float) -> str:
+    content = "+".join([
+            secret_key,
+            consumer_key,
+            method.upper(),
+            url,
+            body if body is not None else '',
+            str(int(timestamp))
+            ]).encode('utf-8')
+    signature = hashlib.sha1()
+    signature.update(content)
+    return signature.hexdigest()
+
+
 class OvhAuth(object):
     def __init__(self, application_key=None, secret_key=None, consumer_key=None):
         self.application_key = os.getenv('OVH_CLIENT_ID')
         self.secret_key = os.getenv('OVH_CLIENT_SECRET')
         self.consumer_key = os.getenv('OVH_CONSUMER_KEY')
 
-    def __call__(self, r):
-        now = str(int(time.time()))
+    def __call__(self, request):
         import ipdb
         ipdb.set_trace()
-        signature = hashlib.sha1()
-        content = "+".join([
-            self.secret_key,
-            self.consumer_key,
-            r.method.upper(),
-            r.url,
-            r.body if r.body is not None else '',
-            now
-            ]).encode('utf-8')
-        print(content)
-        signature.update(content)
-        r.headers['X-Ovh-Application'] = self.application_key
-        r.headers['X-Ovh-Consumer'] = self.consumer_key
-        r.headers['X-Ovh-Timestamp'] = now
-        r.headers['X-Ovh-Signature'] = "$1$" + signature.hexdigest()
-        return r
+        now = time.time()
+        signature = sign(self.secret_key, self.consumer_key, request.method,
+                         request.url, request.body, now)
+        request.headers['X-Ovh-Application'] = self.application_key
+        request.headers['X-Ovh-Consumer'] = self.consumer_key
+        request.headers['X-Ovh-Timestamp'] = str(int(now))
+        request.headers['X-Ovh-Signature'] = "$1$" + signature
+        return request
 
 
 class OvhAuthPlugin(AuthPlugin):
