@@ -1,8 +1,10 @@
-/venv/
 .*.swp
 *.egg-info
-/.tox
 __pycache__/
+
+/.tox
 /.settings/
 /.pydevproject
 /.project
+/build/
+/.coverage

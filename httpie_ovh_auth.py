@@ -36,8 +36,6 @@ class OvhAuth(object):
         self.consumer_key = os.getenv('OVH_CONSUMER_KEY')
 
     def __call__(self, request):
-        import ipdb
-        ipdb.set_trace()
         now = time.time()
         signature = sign(self.secret_key, self.consumer_key, request.method,
                          request.url, request.body, now)
