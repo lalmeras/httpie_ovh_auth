@@ -1,3 +1,5 @@
+auth.env
+
 .*.swp
 *.egg-info
 __pycache__/
