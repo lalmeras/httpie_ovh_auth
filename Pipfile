@@ -14,6 +14,7 @@ pexpect = ">=4.2.1"
 pytest = ">=3.0.6"
 pytest-cov = ">=2.4.0"
 mypy = {}
+httpie = "*"
 
 [requires]
 python_version = "3.9"

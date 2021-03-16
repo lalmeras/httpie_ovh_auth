@@ -7,8 +7,12 @@ You can find URLs to create your application credentials
 (client id and secret) here:
 https://github.com/ovh/python-ovh#1-create-an-application
 
-Then use it in https://api.ovh.com/console/#/auth/credential#POST
-to obtain a consumer key. You need to visit the page ``validationUrl``
+Use your application credentials in
+https://api.ovh.com/console/#/auth/credential#POST
+to obtain a consumer key. You must provide path patterns and allowed HTTP
+methods.
+
+You need to visit the page ``validationUrl``
 to provide your credentials and an expiration delay to validate
 this consumer key.
 
