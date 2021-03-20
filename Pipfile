@@ -15,6 +15,7 @@ pytest = ">=3.0.6"
 pytest-cov = ">=2.4.0"
 mypy = {}
 httpie = "*"
+pyls = "*"
 
 [requires]
 python_version = "3.9"

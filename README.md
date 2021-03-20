@@ -1,7 +1,6 @@
 # Auth plugin for OVH API
 
-Plugin uses environement variables OVH\_CLIENT\_ID, OVH\_CLIENT\_SECRET
-and OVH\_CONSUMER\_KEY to perform httpie authentication.
+## Obtain API credentials
 
 You can find URLs to create your application credentials
 (client id and secret) here:
@@ -23,6 +22,12 @@ http -b post https://api.ovh.com/1.0/auth/credential X-Ovh-Application:$OVH_CLIE
 Visit ``validationUrl`` to validate your consumer key (you need to authenticate
 and choose an expiration delay).
 
+
+## Credentials in environment
+
+Plugin can use environement variables OVH\_CLIENT\_ID,
+OVH\_CLIENT\_SECRET and OVH\_CONSUMER\_KEY to perform httpie authentication.
+
 Rename ``auth.env.tpl`` to ``auth.env`` and insert your credentials.
 
 Configure your environment before running httpie commands by sourcing this file:
@@ -36,6 +41,21 @@ Trigger OVH authentication with ``--auth-type`` parameter:
 ```
 http -b --auth-type ovh https://api.ovh.com/1.0/me
 ```
+
+
+## Credentials with ``-a`` option
+
+Not yet implemented.
+
+
+## Credentials with configuration file
+
+Not yet implemented.
+
+
+## Interactive credential generation
+
+Not yet implmented.
 
 
 # Implementation
