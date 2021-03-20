@@ -18,7 +18,17 @@ __licence__ = 'BSD'
 
 def sign(secret_key: str, consumer_key: str,
          method: str, url: str, body: str, timestamp: float) -> str:
-    """Build and return request signature."""
+    # pylint: disable=too-many-arguments
+    """Build and return request signature.
+
+    Signature is hexadecimal representation of SHA1 of the string concatenation
+    of :
+    secret_key / consumer_key / uppercased HTTP method / url / body / time.
+
+    Integer epoch format is used for time.
+
+    See https://github.com/ovh/python-ovh/blob/master/ovh/client.py
+    Client#raw_call method."""
     content = "+".join([
             secret_key,
             consumer_key,
@@ -32,45 +42,42 @@ def sign(secret_key: str, consumer_key: str,
     return signature.hexdigest()
 
 
-class OvhAuth(object):
+class OvhAuth:
+    # pylint: disable=too-few-public-methods
     """HTTPie callback implementation to manage OVH authentication.
-    
-    See https://github.com/ovh/python-ovh#1-create-an-application"""
 
-    """OVH credential - application key. This variable identifies
-    your application.
-    """
-    application_key: str
-    """OVH credential - application secret.
-    """
-    secret_key: str
-    """OVH credential - consumer secret. This is the secret token
-    that links an application with a user account. This consumer
-    secret must be created with a correct scope (method and urls).
-    """
-    consumer_key: str
+    See https://github.com/ovh/python-ovh#1-create-an-application
 
-    def __init__(self, application_key:str=None, secret_key:str=None,
-                 consumer_key:str=None):
-        # httpie arguments not used
-        self.application_key = os.getenv('OVH_CLIENT_ID', '')
-        self.secret_key = os.getenv('OVH_CLIENT_SECRET', '')
-        self.consumer_key = os.getenv('OVH_CONSUMER_KEY', '')
+    Attributes:
+        client_id           OVH credentials, this variable identifies
+                            your application.
+        client_secret       OVH credential.
+        consumer_key        OVH credential, this is the secret token
+                            that links an application with a user
+                            account. This consumer secret must be
+                            created with a correct scope (method and urls).
+    """
+
+    def __init__(self, client_id:str, client_secret:str, consumer_key:str):
+        # pylint: disable=unused-argument
+        self.client_id:str = client_id
+        self.client_secret:str = client_secret
+        self.consumer_key:str = consumer_key
 
     def __call__(self, request:HTTPRequest) -> HTTPRequest:
         """Authentication implementation.
 
         ``request`` and credentials are used to build authentication
         related headers:
-        
+
         * X-Ovh-Application: application key
         * X-Ovh-Consumer: account token for the application
         * X-Ovh-Timestamp and X-Ovh-Signature: signature information
           to prevent any request replay or tampering"""
         now = time.time()
-        signature = sign(self.secret_key, self.consumer_key, request.method,
+        signature = sign(self.client_secret, self.consumer_key, request.method,
                          request.url, request.body, now)
-        request.headers['X-Ovh-Application'] = self.application_key
+        request.headers['X-Ovh-Application'] = self.client_id
         request.headers['X-Ovh-Consumer'] = self.consumer_key
         request.headers['X-Ovh-Timestamp'] = str(int(now))
         request.headers['X-Ovh-Signature'] = "$1$" + signature
@@ -78,20 +85,32 @@ class OvhAuth(object):
 
 
 class OvhAuthPlugin(AuthPlugin):
+    # pylint: disable=too-few-public-methods
+    """OVH Auth plugin for httpie.
+
+    This plugin does not use command line provided authentication parameters.
+    It uses environment variable provided credentials.
+    """
     name:str = 'OVH auth'
     auth_type:str = 'ovh'
     description:str = 'Authenticate and sign OVH requests'
-    auth_require:str = False
-    auth_parse:str = False
-    prompt_password:str = False
+    auth_require:bool = False
+    auth_parse:bool = False
+    prompt_password:bool = False
+
+    def __init__(self):
+        # httpie arguments not used
+        self.client_id:Optional[str] = os.getenv('OVH_CLIENT_ID', None)
+        self.client_secret:Optional[str] = os.getenv('OVH_CLIENT_SECRET', None)
+        self.consumer_key:Optional[str] = os.getenv('OVH_CONSUMER_KEY', None)
 
     def get_auth(self, username:Optional[str]=None,
                        password:Optional[str]=None) -> OvhAuth:
-        # httpie arguments not used
-        application_key:str = None
-        secret_key:str = None
-        consumer_key:str = None
+        if self.client_id and self.client_secret and self.consumer_key:
+            return OvhAuth(self.client_id, self.client_secret, self.consumer_key)
+        raise OvhAuthException("""Credentials not found, check environment
+        variables OVH_CLIENT_ID, OVH_CLIENT_SECRET and OVH_CUSTOMER_KEY""")
 
-        return OvhAuth(application_key=application_key, secret_key=secret_key,
-                consumer_key=consumer_key)
 
+class OvhAuthException(Exception):
+    """OvhAuth exception, raised if plugin cannot be configured or executed."""
