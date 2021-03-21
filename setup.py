@@ -30,6 +30,7 @@ setup(
         "httpie.plugins.auth.v1": ["httpie_ovh_auth = httpie_ovh_auth:OvhAuthPlugin"]
     },
     install_requires=requirements.splitlines(),
+    python_requires='>=3.6',
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Programming Language :: Python",
