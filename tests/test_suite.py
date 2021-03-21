@@ -1,3 +1,4 @@
+import calendar
 import time
 import unittest
 from unittest.mock import call
@@ -11,7 +12,10 @@ import httpie.models
 class TestSuite(unittest.TestCase):
     def test_signature(self):
         """Check signature generation."""
-        timestamp = time.mktime(time.strptime("2020-02-10", "%Y-%m-%d"))
+        # time_o without any timezone info
+        time_o = time.strptime("2020-02-10 +0000", "%Y-%m-%d %z")
+        # time_o interpreted as UTC to provide epoch
+        timestamp = calendar.timegm(time_o)
 
         def sign(method):
             return httpie_ovh_auth.sign(
@@ -27,7 +31,7 @@ class TestSuite(unittest.TestCase):
         signature2 = sign("GET")
         # check signature
         assert (
-            signature1 == "7ec7ff1bfa04620f934e2b3d0fbd947e653acb1a"
+            signature1 == "cfcd791f25a9786eda88926c7a7ad68580e6bb45"
         ), "signature differs from expected value"
         # check method serialization
         assert signature1 == signature2, "signature must not be sensible to method case"
