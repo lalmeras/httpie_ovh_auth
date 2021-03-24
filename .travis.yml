@@ -8,5 +8,22 @@ python:
   - 3.9
 install:
   - pip install tox-travis
+  - pip install wheel
+  - pip install twine
 script:
   - tox
+deploy:
+  provider: script
+  on:
+    tags: true
+    python: 3.9
+    condition: $TRAVIS_TAG =~ ^v.*$
+  script:
+    - echo "${gpg_passphrase}" | gpg --pinentry-mode loopback --passphrase-fd 0 --import httpieovhauth.gpg
+    - python setup.py sdist bdist_wheel --python-tag py3
+    - for file in dist/*; do echo "$gpg_passphrase" | gpg --pinentry-mode loopback --passphrase-fd 0 --detach-sign --local-user httpieovhauth@gmail.com -o "$file.asc" "$file"; done;
+    - TWINE_PASSWORD="${pypi_token}" twine upload dist/*
+env:
+  global:
+    secure: "I3tW/mwNM/P+KW4M5CR3okHAdzlopK2bdIsJD6nfp9CFsJ0UH/tCb/FmbZGdn4Vb7GvEO5S2lh3UukNTS9R1wC+zzlfBa9nekbhLIuR+CfOI3uMuMFJybbIGhk2LOnNN/9HtK927rRAT03SipTFYlWGArT8fIqKSjVxQygX5L2bplVOgxxCYCv+Flsb0csMS+iELOpCJ6fStSXhUxQeKVHWcNJkO9haeIUx343K8NHIV9WM+sLCkytss3nwz/6R8f9UfrK47lKYRgViWG52Ta0coRyI3AOiDlHh1TNzQ2tajd7Whrh+qRzKEXrtFtJhWEHC5RaqVoRv/iHacDMJXXTaAB/RR5xX21FbuL8Z8LGqHLyR31d61WH0lmNliVloZqL5XnoXCvgFBiIKcjGPpQrS+XxBTjbKUqVlEoWiX2V0vjO5Nb4SDpq6B1mdYUHLL8gc4piYF3sAkPQy3hDE0Cv2lYqQ9pNAtd/UHOfZU7P69gCxTgRhK8sHZvfCCT5IAYI7HAAzymRkY4snaN4GZttu9ruoll3dt2OyzoxarO15MtxM0znNFQxNuBgLPAVGz20gbDypfmac4I7ktMqOJPX4CYRh7BJokhdVG56HfJH5kD0dQEHhto3t9mpgVTytRnyThiEeq2KEXDVXuYkvAVUa+4k9nTEKBgXIjQWGZ6JI="
+    secure: "NkRmuWSO8tr4rMc3O0SjCsIi3kWq35pY65RTvYSza07hlj1+TQvMN0doM1sEAHiwPffeKK2nzlHcgz49SfbjcEtLL352dDKI2eX7JA1849n7Nv/qPUa3XL6snfLL+vLX7ugbHdYs/BwHrjWmPYLJZHnBH23twa4UKMtZiQjs4/gVd7KGoETHnsH24nsOEMZxZxjCMydtkKgHXK6ntSpK7bd9fMXGuKR9AAVvvOxnbXLPAHnigyDurPUNRUXVLIts9cqsFE0UiG0ruChmaH9SCNJBNO0ftfktJRXwfEKTE2QOnSHq3EtlaIlNpqfI/r0ErDafWfy3KIRl4l/WsbzkmpLkFgUhaC/cAsN1XO/op2ifU19KZ+Y4tGGRHTUamw5Fkld90wHIBTknzqEE39wIxxJCkjJ6eblAXHkHPQLvtHfrGu7qo62vYfMW/mTM5y3oC/IBHnUYbex8q7Zd3yCo+gLAVeGEArBOD0AZnO1d3FPSHPaZ098II71WwGt+6kWfFU3KStv5+BCafqHMtzWnWAV1d0S5SMteSaWoH5kYX8eFvYs1/rUrX7p3QJ7kVTjF6Wz6np0mVPlhKLCPETDfH3XEEQHOfR32IoxxVcEgv44CxZQc7iNuCv95u9dyLfUwmImBdtHyTEyDUjuzxR0NMfoW5WaHpiw3nq2RrZvYi7g="
