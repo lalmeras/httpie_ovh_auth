@@ -9,4 +9,4 @@ for file in dist/*; do
   echo "$gpg_passphrase" | \
     gpg --detach-sign -u "$GPG_USER" -o "$file.asc" "$file";
 done;
-TWINE_PASSWORD="${pypi_token}" twine upload dist/*
+TWINE_PASSWORD="${pypi_token}" twine upload -u __token__ dist/*
