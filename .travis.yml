@@ -20,7 +20,8 @@ script:
 # stage ordering
 stages:
   - test
-  - deploy
+  - name: deploy
+    if: tag IS present AND (tag =~ ^v)
 # shared
 install:
   - pip install tox-travis
