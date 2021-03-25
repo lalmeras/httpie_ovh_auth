@@ -16,10 +16,10 @@ python setup.py sdist bdist_wheel --python-tag py3
 # sign
 for file in dist/*; do
   echo "$gpg_passphrase" | \
-    gpg $GPG_OPTS --detach-sign -u "$GPG_USER" -o "$file.asc" "$file" >/dev/null 2>&1
+    gpg $GPG_OPTS --detach-sign -u "$GPG_USER" --armor -o "$file.asc" "$file" >/dev/null 2>&1
 done
 echo "dist/ files"
 ls dist/
 
 # publish
-#TWINE_PASSWORD="${pypi_token}" twine upload -u __token__ dist/*
+TWINE_PASSWORD="${pypi_token}" twine upload -u __token__ dist/*
