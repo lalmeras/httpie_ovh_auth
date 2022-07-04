@@ -95,18 +95,13 @@ pipenv lock --clear
 pipenv install --dev
 
 # prepare dev branch for release...
-# update version
-# increase version; may be launch multiple time to cycle dev, rc, ...
-bump2version --verbose prerel [--allow-dirty] [--no-commit] [--no-tag]
+# update version (1.1.0, 1.2.0, ...)
+bump2version --verbose --no-tag minor
 
 # merge on main
 git checkout main
 git pull
 git merge dev
-
-# prepare next development version (+1dev0)
-git checkout dev
-bump2version --verbose --no-tag minor
 
 # push all (launch with --dry-run to check before actual update)
 # delete (git tag -d <tag> unneeded tags - dev, rc)
