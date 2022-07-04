@@ -99,7 +99,7 @@ class TestSuite(unittest.TestCase):
             consumer_key,
             request.method,
             request.url,
-            request.body,
+            request.body.decode('utf-8'),
             time.return_value,
         )
         assert request.headers["X-Ovh-Application"] == client_id
