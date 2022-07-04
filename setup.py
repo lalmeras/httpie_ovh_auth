@@ -13,6 +13,9 @@ with io.open("httpie_ovh_auth.py", "rt", encoding="utf8") as f:
 with io.open("requirements.txt", "rt", encoding="utf-8") as f:
     requirements = f.read()
 
+with io.open('CHANGELOG.md', "rt", encoding="utf-8") as history_file:
+    history = history_file.read()
+
 setup(
     name="httpie-ovh-auth",
     description="OVH auth plugin for HTTPie.",
@@ -24,7 +27,7 @@ setup(
     download_url="https://pypi.org/project/httpie_ovh_auth/",
     py_modules=["httpie_ovh_auth"],
     zip_safe=False,
-    long_description=readme,
+    long_description=readme + "\n\n" + history,
     long_description_content_type="text/markdown",
     entry_points={
         "httpie.plugins.auth.v1": ["httpie_ovh_auth = httpie_ovh_auth:OvhAuthPlugin"]
