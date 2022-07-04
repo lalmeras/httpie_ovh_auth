@@ -88,7 +88,8 @@ class OvhAuth:
             self.consumer_key,
             request.method,
             request.url,
-            request.body,
+            # request.body is bytes[]; we need str
+            request.body.decode('utf-8') if request.body else None,
             now,
         )
         request.headers["X-Ovh-Application"] = self.client_id
