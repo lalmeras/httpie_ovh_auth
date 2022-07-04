@@ -23,4 +23,4 @@ rope = "*"
 black = "==20.8b1"
 
 [requires]
-python_version = "3.9"
+python_version = "3"
