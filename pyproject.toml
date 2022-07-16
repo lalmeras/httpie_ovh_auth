@@ -8,16 +8,16 @@ build-backend = "setuptools.build_meta"
 name = "httpie-ovh-auth"
 description = "OVH auth plugin for HTTPie."
 dynamic = ["readme", "version"]
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 license = {text = "BSD 3-Clause License"}
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.6",
   "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
   "Environment :: Plugins",
   "Environment :: Console",
   "Environment :: Web Environment",
@@ -80,15 +80,15 @@ testpaths = [
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = pipenv,mypy,pylint
+envlist = py{37,38,39,310},pipenv,mypy,pylint
 isolated_build = True
 
-[travis]
+[gh-actions]
 python =
-    3.6: py36
     3.7: py37
     3.8: py38
-    3.9: py39, pylint, mypy
+    3.9: py39
+    3.10: py310, pylint, mypy
 
 [testenv]
 setenv =
@@ -100,7 +100,6 @@ setenv =
 commands =
     pipenv run pytest --cov=httpie_ovh_auth --cov-report=xml {posargs}
 
-# use pure tox provisioning
 [py]
 deps =
     pytest
@@ -115,7 +114,7 @@ setenv =
     PIPENV_IGNORE_VIRTUALENVS = 0
 commands = {[pipenv]commands}
 
-[testenv:py39]
+[testenv:py{37,38,39,310}]
 deps = {[py]deps}
 commands = {[py]commands}
 
@@ -133,7 +132,7 @@ commands =
 """
 
 [tool.mypy]
-python_version = "3.6"
+python_version = "3.7"
 warn_return_any = true
 warn_unused_configs = true
 files = "httpie_ovh_auth.py"
