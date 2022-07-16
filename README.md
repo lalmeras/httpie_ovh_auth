@@ -25,20 +25,19 @@ and choose an expiration delay).
 
 ## Credentials in environment
 
-Plugin can use environement variables OVH\_CLIENT\_ID,
-OVH\_CLIENT\_SECRET and OVH\_CONSUMER\_KEY to perform httpie authentication.
+Plugin can use environement variables `OVH_CLIENT_ID`,
+`OVH_CLIENT_SECRET` and `OVH_CONSUMER_KEY` to perform httpie authentication.
+`OVH_CLIENT_*` come from application creation. `OVH_CONSUMER_KEY` is the
+`consumerKey` attribute obtained from credential validation.
 
 Rename ``auth.env.tpl`` to ``auth.env`` and insert your credentials.
 
 Configure your environment before running httpie commands by sourcing this file:
 
 ```
+# Setup environment variables
 source auth.env
-```
-
-Trigger OVH authentication with ``--auth-type`` parameter:
-
-```
+# Check authentication setup with profile API
 http -b --auth-type ovh https://api.ovh.com/1.0/me
 ```
 
@@ -62,6 +61,8 @@ Not yet implmented.
 
 Here is the official API implementation: https://github.com/ovh/python-ovh
 
+This library does not depend on `python-ovh`.
+
 
 ## OVH API
 
@@ -76,7 +77,7 @@ API documentation available here: https://api.ovh.com/
 ## init virtualenv with pipenv
 pipenv install --dev
 ## launch tests in pipenv environment
-pytest
+pipenv run pytest
 ## launch tests for all envs
 pipenv run tox
 ```
@@ -95,29 +96,24 @@ pipenv lock --clear
 pipenv install --dev
 
 # prepare dev branch for release...
+# check CHANGELOG.md, README.md, ...
+# ...
 # update version (1.1.0, 1.2.0, ...)
-bump2version --verbose --no-tag minor
-
-# merge on main
-git checkout main
+git fetch
+git checkout master
 git pull
-git merge dev
-
-# push all (launch with --dry-run to check before actual update)
-# delete (git tag -d <tag> unneeded tags - dev, rc)
-git push --all
-git push --tag
+git merge origin/dev
+tbump VERSION
+git checkout dev
+tbump --no-tag VERSION.dev0
 
 # publish (pypi credentials required)
-git checkout tag
-pipenv shell
-python setup.py clean --all
-rm -rf dist/*
-python setup.py sdist
-python setup.py bdist_wheel
+git checkout vVERSION
+rm -rf dist build
+python -m build --sdist --wheel
 # fake upload
 # run pypi-server in another shell
-mkdir -p /tmp/packages && pypi-server -P . -a . /tmp/packages/
+mkdir -p /tmp/packages && pypi-server run -P . -a . /tmp/packages/
 twine upload  -u "" -p "" --repository-url http://localhost:8080/ dist/*.whl dist/*.tar.gz
 
 # real upload
