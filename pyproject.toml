@@ -7,7 +7,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "httpie-ovh-auth"
 description = "OVH auth plugin for HTTPie."
-dynamic = ["readme", "version"]
+readme = "README.md"
+dynamic = ["version"]
 requires-python = ">=3.7"
 license = {text = "BSD 3-Clause License"}
 classifiers = [
@@ -37,7 +38,7 @@ email = "lalmeras@gmail.com"
 [project.urls]
 repository = "https://github.com/lalmeras/httpie_ovh_auth/"
 homepage = "https://pypi.org/project/httpie-ovh-auth/"
-changelog = "https://github.com/lalmeras/httpie_ovh_auth/blob/dev/CHANGELOG.md"
+changelog = "https://github.com/lalmeras/httpie_ovh_auth/blob/dev/README.md"
 
 [project.optional-dependencies]
 test = [
@@ -68,7 +69,6 @@ py-modules = ["httpie_ovh_auth"]
 
 [tool.setuptools.dynamic]
 version = {attr = "httpie_ovh_auth.__version__"}
-readme = {file = ["README.md", "CHANGELOG.md"]}
 
 [tool.pytest.ini_options]
 minversion = "6.0"
