@@ -1,0 +1,21 @@
+---
+name: Build
+on:
+  - push
+  - pull_request
+jobs:
+  build:
+    uses: ./.github/workflows/workflow-build.yml
+  publish-testpypi:
+    needs: build
+    uses: ./.github/workflows/workflow-publish.yml
+    with:
+      environment: testpypi
+      publish_required: false
+      sign_required: false
+      sign_key_uuid: httpieovhauth@gmail.com
+      pypi_repository_url: https://test.pypi.org/legacy/
+    secrets:
+      pypi_token: ${{ secrets.PYPI_TOKEN }}
+      sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
+      sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
