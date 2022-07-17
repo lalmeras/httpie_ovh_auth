@@ -1,0 +1,37 @@
+---
+name: workflow-version
+on:
+  workflow_call: {}
+permissions:
+  contents: write
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Increment version
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+          git fetch origin main dev
+          pip install --upgrade tbump 'semver<3'
+          NEW_VERSION="$( ./.github/version.py minor "$( tbump current-version )" )"
+          echo "Updating version to $NEW_VERSION"
+          tbump --non-interactive --only-patch "$NEW_VERSION"
+          git diff
+          git checkout dev .
+          echo "Setup merge version $NEW_VERSION on dev"
+          tbump --non-interactive --only-patch "$NEW_VERSION"
+          git diff
+          git commit -a -m "Switch to $NEW_VERSION to avoid merge conflict"
+          git merge origin/main
+          git push --dry-run
+          DEV_VERSION="$( ./github/version.py minor "$NEW_VERSION" )"
+          echo "Updating dev version to $DEV_VERSION"
+          tbump --non-interactive --only-patch "$DEV_VERSION"
+          git diff
+          

@@ -1,0 +1,53 @@
+---
+name: Build
+on:
+  # run on all push and for pull request
+  push:
+    branches:
+      - '**'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - closed
+jobs:
+  build:
+    # always build and test
+    uses: ./.github/workflows/workflow-build.yml
+  publish-testpypi:
+    # then publish on test.pypi.org
+    needs: build
+    if: github.ref_protected
+    uses: ./.github/workflows/workflow-publish.yml
+    with:
+      environment: testpypi
+      publish_required: false
+      sign_required: false
+      sign_key_uuid: httpieovhauth@gmail.com
+      pypi_repository_url: https://test.pypi.org/legacy/
+    secrets:
+      pypi_token: ${{ secrets.PYPI_TOKEN }}
+      sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
+      sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+  publish-pypi:
+    # then publish publish on pypi.org for stable version (main branch)
+    needs: publish-testpypi
+    if: github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' && startsWith(github.event.head_commit.message, 'Bump to ')
+    uses: ./.github/workflows/workflow-publish.yml
+    with:
+      environment: pypi
+      publish_required: true
+      sign_required: true
+      sign_key_uuid: httpieovhauth@gmail.com
+      pypi_repository_url: https://upload.pypi.org/legacy/
+    secrets:
+      pypi_token: ${{ secrets.PYPI_TOKEN }}
+      sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
+      sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+  main-version:
+    # only for closed and merged pull_request on main: update and tag version
+    needs: build
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' }}
+    uses: ./.github/workflows/workflow-version.yml
+    permissions:
+      contents: write

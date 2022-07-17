@@ -1,9 +1,21 @@
 # Auth plugin for OVH API
 
+## httpie\_ovh\_auth in a nutshell
+
+This plugin allows, based on `OVH_CLIENT_ID`, `OVH_CLIENT_SECRET` and `OVH_CONSUMER_KEY`
+to perform OVH API calls with httpie tool.
+
+```
+# Configure an OVH application to get OVH_CLIENT_ID, OVH_CLIENT_SECRET
+# Perform authentication to get OVH_CONSUMER_KEY
+# Setup environment variables
+# Perform OVH API calls with httpie
+http -b --auth-type ovh https://api.ovh.com/1.0/me
+```
+
 ## Obtain API credentials
 
-You can find URLs to create your application credentials
-(client id and secret) here:
+You can find URLs to create your application credentials (client id and secret) here:
 https://github.com/ovh/python-ovh#1-create-an-application
 
 Then, you need to perform a customer key request and validation.
@@ -23,7 +35,7 @@ Visit ``validationUrl`` to validate your consumer key (you need to authenticate
 and choose an expiration delay).
 
 
-## Credentials in environment
+## Credentials from environment variables
 
 Plugin can use environement variables `OVH_CLIENT_ID`,
 `OVH_CLIENT_SECRET` and `OVH_CONSUMER_KEY` to perform httpie authentication.
@@ -57,19 +69,14 @@ Not yet implemented.
 Not yet implmented.
 
 
-## Implementation
+## OVH API resources
 
-Here is the official API implementation: https://github.com/ovh/python-ovh
-
-This library does not depend on `python-ovh`.
-
-
-## OVH API
+Here is the official API implementation: https://github.com/ovh/python-ovh (this library *does not depend* on `python-ovh`).
 
 API documentation available here: https://api.ovh.com/
 
 
-## Development
+# Development
 
 ```
 ## install pipenv
@@ -84,7 +91,7 @@ pipenv run tox
 
 ## Release
 
-Stable branch is `master`; development branch is `dev`. Usual release steps are :
+Stable branch is `main`; development branch is `dev`. Usual release steps are :
 
 ```
 # install dev tools and switch in pipenv
@@ -98,17 +105,51 @@ pipenv install --dev
 # prepare dev branch for release...
 # check CHANGELOG.md, README.md, ...
 # ...
-# update version (1.1.0, 1.2.0, ...)
+# update version if needed (example: VERSION=1.1.0.dev0 to release 1.1.0)
 git fetch
-git checkout master
-git pull
-git merge origin/dev
-tbump VERSION
 git checkout dev
-tbump --no-tag VERSION.dev0
+git pull
+tbump VERSION
 
+# open a PR for version releasing
+# PR merge triggers:
+# * Build devN version
+# * trigger version minor increment
+# * trigger tag creation, dev branch update (version, merge)
+# * tag is published
+```
+
+
+## Github actions
+
+This actions are automatically triggered:
+
+* Build and test on python 3.7-3.10 environments for all branches and PR
+* Build and publish on test.pypi.org for all protected branches and PR; publication is ignored if version is already deployed
+* Version increment for merged PR on `main` branch (increment minor part, update main and create a new tag); merge back and increment version in `dev` branch
+* Build and publish on pypi.org for main with message starting with *Bump to*; fails if version is already deployed
+
+
+## Github actions configuration
+
+`testpypi` and `pypi` environments are needed. Needed secrets are:
+
+* `PYPI_TOKEN`
+* `GPG_PRIVATE_KEY` (optional)
+* `GPG_PASSPHRASE` (optional)
+
+`GPG_*` values are the same for both environments.
+
+
+## Manual publication
+
+If needed, release can be manually performed.
+
+```
+# Manual publication
 # publish (pypi credentials required)
-git checkout vVERSION
+tbump RELEASE_VERSION
+git checkout vRELEASE_VERSION
 rm -rf dist build
 python -m build --sdist --wheel
 # fake upload

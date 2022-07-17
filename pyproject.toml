@@ -57,7 +57,8 @@ dev = [
   "tbump",
   "ipdb",
   "build",
-  "pypiserver"
+  "pypiserver",
+  "semver<3"
 ]
 
 [project.entry-points."httpie.plugins.auth.v1"]
