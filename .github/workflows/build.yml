@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - '**'
+      - '!main'
   pull_request:
     types:
       - opened
@@ -20,6 +21,8 @@ jobs:
     if: github.ref_protected
     uses: ./.github/workflows/workflow-publish.yml
     with:
+      # default to context ref
+      ref: ""
       environment: testpypi
       publish_required: false
       sign_required: false
@@ -29,12 +32,46 @@ jobs:
       pypi_token: ${{ secrets.PYPI_TOKEN }}
       sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
       sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+  version:
+    # only for closed and merged pull_request on main: update and tag version, merge back to dev
+    needs: build
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      publish_ref: ${{ steps.version.outputs.publish_ref }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Increment version
+        id: version
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+          git fetch origin main dev
+          pip install --upgrade tbump 'semver<3'
+          NEW_VERSION="$( ./.github/version.py minor "$( tbump current-version )" )"
+          echo "Updating version to $NEW_VERSION"
+          tbump --non-interactive "$NEW_VERSION"
+          echo "::set-output name=publish_ref::$( git rev-parse HEAD )"
+          git checkout dev
+          echo "Setup merge version $NEW_VERSION on dev"
+          tbump --non-interactive --only-patch "$NEW_VERSION"
+          git commit -a -m "Switch to $NEW_VERSION to avoid merge conflict"
+          git merge main
+          git push
+          DEV_VERSION="$( ./github/version.py minor "$NEW_VERSION" )"
+          echo "Updating dev version to $DEV_VERSION"
+          tbump --non-interactive --no-tag "$DEV_VERSION"
   publish-pypi:
-    # then publish publish on pypi.org for stable version (main branch)
-    needs: publish-testpypi
-    if: github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' && startsWith(github.event.head_commit.message, 'Bump to ')
+    needs: version
     uses: ./.github/workflows/workflow-publish.yml
     with:
+      ref: ${{ needs.version.outputs.publish_ref }}
       environment: pypi
       publish_required: true
       sign_required: true
@@ -44,10 +81,3 @@ jobs:
       pypi_token: ${{ secrets.PYPI_TOKEN }}
       sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
       sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
-  main-version:
-    # only for closed and merged pull_request on main: update and tag version
-    needs: build
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' }}
-    uses: ./.github/workflows/workflow-version.yml
-    permissions:
-      contents: write
