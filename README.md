@@ -163,7 +163,7 @@ twine upload dist/*.whl dist/*.tar.gz
 
 # Changelog
 
-## 1.2.0 (tbd)
+## 1.2.0 (2022-07-18)
 
 * remove python 3.6 support
 * added python 3.10 tests
