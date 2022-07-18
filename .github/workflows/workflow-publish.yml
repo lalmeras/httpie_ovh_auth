@@ -3,6 +3,11 @@ name: workflow-build
 on:
   workflow_call:
     inputs:
+      ref:
+        description: Git reference to checkout
+        required: true
+        type: string
+        default: ""
       environment:
         description: Environment for secret access
         required: true
