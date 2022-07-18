@@ -21,17 +21,13 @@ jobs:
           pip install --upgrade tbump 'semver<3'
           NEW_VERSION="$( ./.github/version.py minor "$( tbump current-version )" )"
           echo "Updating version to $NEW_VERSION"
-          tbump --non-interactive --only-patch "$NEW_VERSION"
-          git diff
-          git checkout dev .
+          tbump --non-interactive "$NEW_VERSION"
+          git checkout dev
           echo "Setup merge version $NEW_VERSION on dev"
           tbump --non-interactive --only-patch "$NEW_VERSION"
-          git diff
           git commit -a -m "Switch to $NEW_VERSION to avoid merge conflict"
           git merge origin/main
-          git push --dry-run
+          git push
           DEV_VERSION="$( ./github/version.py minor "$NEW_VERSION" )"
           echo "Updating dev version to $DEV_VERSION"
-          tbump --non-interactive --only-patch "$DEV_VERSION"
-          git diff
-          
+          tbump --non-interactive --no-tag "$DEV_VERSION"
