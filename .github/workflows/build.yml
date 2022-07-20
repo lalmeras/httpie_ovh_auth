@@ -13,25 +13,52 @@ on:
       - closed
 jobs:
   build:
-    # always build and test
-    uses: ./.github/workflows/workflow-build.yml
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.7', '3.8', '3.9']
+        push-artifacts: [false]
+        include:
+          - python-version: "3.10"
+            push-artifacts: true
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/build
+        with:
+          python-version: ${{ matrix.python-version }}
+          push-artifacts: ${{ matrix.push-artifacts }}
   publish-testpypi:
     # then publish on test.pypi.org
     needs: build
+    runs-on: ubuntu-latest
     if: github.ref_protected
-    uses: ./.github/workflows/workflow-publish.yml
-    with:
-      # default to context ref
-      ref: ""
-      environment: testpypi
-      publish_required: false
-      sign_required: false
-      sign_key_uuid: httpieovhauth@gmail.com
-      pypi_repository_url: https://test.pypi.org/legacy/
-    secrets:
-      pypi_token: ${{ secrets.PYPI_TOKEN }}
-      sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
-      sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/publish
+        with:
+          publish_required: false
+          sign_required: false
+          sign_key_uuid: httpieovhauth@gmail.com
+          pypi_repository_url: https://test.pypi.org/legacy/
+          pypi_token: ${{ secrets.PYPI_TOKEN }}
+          sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    if: false
+    environment: testpypi
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/publish
+        with:
+          publish_required: true
+          sign_required: true
+          sign_key_uuid: httpieovhauth@gmail.com
+          pypi_repository_url: https://upload.pypi.org/legacy/
+          pypi_token: ${{ secrets.PYPI_TOKEN }}
+          sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
   version:
     # only for closed and merged pull_request on main: update and tag version, merge back to dev
     needs: build
@@ -56,7 +83,7 @@ jobs:
           git config user.email "<>"
           git fetch
           pip install --upgrade tbump 'semver<3'
-          NEW_VERSION="$( ./.github/version.py minor "$( tbump current-version )" )"
+          NEW_VERSION="$( ./.github/scripts/version.py minor "$( tbump current-version )" )"
           echo "Updating version to $NEW_VERSION"
           tbump --non-interactive "$NEW_VERSION"
           echo "::set-output name=publish_ref::$( git rev-parse HEAD )"
@@ -69,17 +96,3 @@ jobs:
           DEV_VERSION="$( ./.github/version.py minor "$NEW_VERSION" )"
           echo "Updating dev version to $DEV_VERSION"
           tbump --non-interactive --no-tag "$DEV_VERSION"
-  publish-pypi:
-    needs: version
-    uses: ./.github/workflows/workflow-publish.yml
-    with:
-      ref: ${{ needs.version.outputs.publish_ref }}
-      environment: pypi
-      publish_required: true
-      sign_required: true
-      sign_key_uuid: httpieovhauth@gmail.com
-      pypi_repository_url: https://upload.pypi.org/legacy/
-    secrets:
-      pypi_token: ${{ secrets.PYPI_TOKEN }}
-      sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
-      sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}

@@ -1,0 +1,55 @@
+---
+name: Build and test
+description: Build and test application
+inputs:
+  python-version:
+    description: Python version (3.7 to 3.10). If empty, not python setup is peformed.
+    required: true
+    type: string
+    default: "3.10"
+  push-artifacts:
+    description: Push artifacts ?
+    required: true
+    type: boolean
+    default: false
+  test:
+    description: Is test needed ?
+    required: true
+    type: boolean
+    default: true
+runs:
+  using: composite
+  steps:
+    - name: Set up Python ${{ inputs.python-version }}
+      if: inputs.python-version != ''
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install dependencies
+      if: inputs.test
+      shell:  bash
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install tox tox-gh-actions
+    - name: Test with tox
+      if: inputs.test
+      shell:  bash
+      run: tox
+    - name: Build artifacts
+      if: inputs.push-artifacts
+      shell:  bash
+      run: |
+        python -m pip install --upgrade build wheel
+        python -m build --sdist --wheel
+        [ -f dist/*.tar.gz ] || { echo "Source artifact is missing"; exit 1; }
+        [ -f dist/*-py3-none-any.whl ] || { echo "Wheel artifact is missing"; exit 1; }
+    - name: Push artifacts
+      if: inputs.push-artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: artifact
+        path: |
+          dist/*.tar.gz
+          dist/*-py3-none-any.whl
+        if-no-files-found: error
+        retention-days: 1
