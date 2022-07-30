@@ -12,6 +12,11 @@ inputs:
     default: false
     type: boolean
     required: false
+  allow_prerelease:
+    description: Should we publish prerelease/build version ?
+    default: false
+    type: boolean
+    required: true
   sign_required:
     description: Is signature required ?
     default: true
@@ -61,10 +66,16 @@ runs:
         TWINE_REPOSITORY_URL: ${{ inputs.pypi_repository_url }}
         TWINE_NON_INTERACTIVE: true
         PUBLISH_REQUIRED: ${{ inputs.publish_required }}
+        ALLOW_PRERELEASE: ${{ inputs.allow_prerelease }}
         SIGN_REQUIRED: ${{ inputs.sign_required }}
         SIGN_KEY_UUID: ${{ env.sign_key_uuid }}
       shell:  bash
       run: |
+        python -m pip install --upgrade tbump "semver<3"
+        if [ "$ALLOW_PRERELEASE" == "false" ]; then
+          echo "Check if version is prerelease"
+          .github/scripts/is_release.py "$( tbump current-version )" || { echo "This is a prerelease version and allow_prerelease=false"; exit 0; }
+        fi
         if [ "$PUBLISH_REQUIRED" != "true" ]; then
           SKIP_EXISTING="--skip-existing"
         fi

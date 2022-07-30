@@ -1,67 +1,9 @@
 ---
 name: Build
-on:
-  # run on all push and for pull request
-  push:
-    branches:
-      - '**'
-      - '!main'
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - closed
+on: push
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.7', '3.8', '3.9']
-        push-artifacts: [false]
-        include:
-          - python-version: "3.10"
-            push-artifacts: true
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/build
-        with:
-          python-version: ${{ matrix.python-version }}
-          push-artifacts: ${{ matrix.push-artifacts }}
-  publish-testpypi:
-    # then publish on test.pypi.org
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref_protected
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/publish
-        with:
-          publish_required: false
-          sign_required: false
-          sign_key_uuid: httpieovhauth@gmail.com
-          pypi_repository_url: https://test.pypi.org/legacy/
-          pypi_token: ${{ secrets.PYPI_TOKEN }}
-          sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
-  publish-pypi:
-    needs: build
-    runs-on: ubuntu-latest
-    if: false
-    environment: testpypi
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/publish
-        with:
-          publish_required: true
-          sign_required: true
-          sign_key_uuid: httpieovhauth@gmail.com
-          pypi_repository_url: https://upload.pypi.org/legacy/
-          pypi_token: ${{ secrets.PYPI_TOKEN }}
-          sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
   version:
     # only for closed and merged pull_request on main: update and tag version, merge back to dev
-    needs: build
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' }}
     permissions:
       contents: write
@@ -96,3 +38,57 @@ jobs:
           DEV_VERSION="$( ./.github/version.py minor "$NEW_VERSION" )"
           echo "Updating dev version to $DEV_VERSION"
           tbump --non-interactive --no-tag "$DEV_VERSION"
+  build:
+    runs-on: ubuntu-latest
+    needs: version
+    if: always() && (needs.version.result == 'success' || needs.version.result == 'skipped')
+    strategy:
+      matrix:
+        python-version: ['3.7', '3.8', '3.9']
+        push-artifacts: [false]
+        include:
+          - python-version: "3.10"
+            push-artifacts: true
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.version.outputs.publish_ref || github.context.commit }}
+      - uses: ./.github/actions/build
+        with:
+          python-version: ${{ matrix.python-version }}
+          push-artifacts: ${{ matrix.push-artifacts }}
+  publish-testpypi:
+    # then publish on test.pypi.org
+    needs: build
+    runs-on: ubuntu-latest
+    if: always() && needs.build.result == 'success' && github.ref_protected
+    environment: testpypi
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/publish
+        with:
+          allow_prerelease: true
+          publish_required: false
+          sign_required: false
+          sign_key_uuid: httpieovhauth@gmail.com
+          pypi_repository_url: https://test.pypi.org/legacy/
+          pypi_token: ${{ secrets.PYPI_TOKEN }}
+          sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    if: always() && needs.build.result == 'success' && github.ref_name == 'main'
+    environment: pypi
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/publish
+        with:
+          allow_prerelease: false
+          publish_required: true
+          sign_required: true
+          sign_key_uuid: httpieovhauth@gmail.com
+          pypi_repository_url: https://upload.pypi.org/legacy/
+          pypi_token: ${{ secrets.PYPI_TOKEN }}
+          sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
