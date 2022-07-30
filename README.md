@@ -126,7 +126,7 @@ This actions are automatically triggered:
 
 * Build and test on python 3.7-3.10 environments for all branches and PR
 * Build and publish on test.pypi.org for all protected branches and PR; publication is ignored if version is already deployed
-* For merged PR on `main` branch: version increment (minor), tag, `dev` merge back and version
+* For merged PR on `main` branch: version increment (minor), tag, `dev` merge back and version, build and publish on pypi
 
 
 ## Github actions configuration
