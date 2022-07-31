@@ -1,0 +1,98 @@
+---
+name: Publish
+description: Build and publish application
+inputs:
+  python-version:
+    description: Python version (3.7 to 3.10). If empty, not python setup is peformed.
+    required: true
+    type: string
+    default: "3.10"
+  build_version:
+    description: Package version
+    required: true
+    type: string
+  publish_required:
+    description: Is publication a required step ?
+    default: false
+    type: boolean
+    required: false
+  allow_prerelease:
+    description: Should we publish prerelease/build version ?
+    default: false
+    type: boolean
+    required: true
+  sign_required:
+    description: Is signature required ?
+    default: true
+    type: boolean
+    required: false
+  sign_key_uuid:
+    description: Signature key uuid
+    required: false
+    type: string
+    default: ""
+  pypi_repository_url:
+    description: pypi server url
+    required: false
+    type: string
+    default: https://test.pypi.org/legacy/
+  pypi_token:
+    description: pypi authentication token
+    required: true
+  sign_key_passphrase:
+    description: Signature key passphrase
+    required: false
+  sign_key:
+    description: Signature key (armored export)
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Set up Python ${{ inputs.python-version }}
+      if: inputs.python-version != ''
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Import GPG
+      uses: crazy-max/ghaction-import-gpg@v5
+      with:
+        gpg_private_key: ${{ inputs.sign_key }}
+        passphrase: ${{ inputs.sign_key_passphrase }}
+        fingerprint: 74C0C759C46E40BC421BC6DBDCCFEB9347EE8CC6
+      if: ${{ inputs.sign_key_uuid != '' }}
+    - uses: actions/download-artifact@v3
+      with:
+        name: artifact
+    - name: Publish artifacts
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ inputs.pypi_token }}
+        TWINE_REPOSITORY_URL: ${{ inputs.pypi_repository_url }}
+        TWINE_NON_INTERACTIVE: true
+        PUBLISH_REQUIRED: ${{ inputs.publish_required }}
+        ALLOW_PRERELEASE: ${{ inputs.allow_prerelease }}
+        BUILD_VERSION: ${{ inputs.build_version }}
+        SIGN_REQUIRED: ${{ inputs.sign_required }}
+        SIGN_KEY_UUID: ${{ inputs.sign_key_uuid }}
+      shell:  bash
+      run: |
+        python -m pip install --upgrade "semver<3"
+        if [ "$ALLOW_PRERELEASE" == "false" ]; then
+          echo "Check if version is prerelease"
+          .github/scripts/is_release.py "$BUILD_VERSION" || { echo "This is a prerelease version and allow_prerelease=false"; exit 0; }
+        fi
+        if [ "$PUBLISH_REQUIRED" != "true" ]; then
+          SKIP_EXISTING="--skip-existing"
+        fi
+        # if signing is required, check that all settings are available
+        if [ "$SIGN_REQUIRED" == "true" ]; then
+          [ -z "$SIGN_KEY_UUID" ] && { echo "`inputs.sign_key_uuid` value is missing !" >&2; exit 1; }
+          gpg --list-secret-keys --keyid-format=long "$SIGN_KEY_UUID" 2&>/dev/null || { echo "No signature key available for $SIGN_KEY_UUID" >&2; exit 1; }
+        fi
+        # setup signing if available
+        if [ -n "$SIGN_KEY_UUID" ] && gpg --list-secret-keys --keyid-format=long "$SIGN_KEY_UUID" 2&>/dev/null; then
+          SIGN="-s -i $SIGN_KEY_UUID"
+        fi
+        python -m pip install --upgrade twine
+        twine upload $SIGN $SKIP_EXISTING *.tar.gz *.whl
+

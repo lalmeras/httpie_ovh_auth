@@ -1,0 +1,107 @@
+---
+name: Build
+on: push
+jobs:
+  version:
+    # only for closed and merged pull_request on main: update and tag version, merge back to dev
+    if: ${{ github.ref_name == 'main' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      publish_ref: ${{ steps.version.outputs.publish_ref }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Increment version
+        id: version
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+          git fetch
+          pip install --upgrade tbump 'semver<3'
+          .github/scripts/is_release.py "$( tbump current-version )" && { exit 0; }
+          NEW_VERSION="$( ./.github/scripts/version.py minor "$( tbump current-version )" )"
+          echo "Updating version to $NEW_VERSION"
+          tbump --non-interactive "$NEW_VERSION"
+          echo "::set-output name=publish_ref::$( git rev-parse HEAD )"
+          git checkout dev
+          echo "Setup merge version $NEW_VERSION on dev"
+          tbump --non-interactive --only-patch "$NEW_VERSION"
+          git commit -a -m "Switch to $NEW_VERSION to avoid merge conflict"
+          git merge main
+          git push
+          DEV_VERSION="$( ./.github/scripts/version.py minor "$NEW_VERSION" )"
+          echo "Updating dev version to $DEV_VERSION"
+          tbump --non-interactive --no-tag "$DEV_VERSION"
+  build:
+    runs-on: ubuntu-latest
+    needs: version
+    if: always() && (needs.version.result == 'success' || needs.version.result == 'skipped')
+    strategy:
+      matrix:
+        python-version: ['3.7', '3.8', '3.9']
+        push-artifacts: [false]
+        include:
+          - python-version: "3.10"
+            push-artifacts: true
+    outputs:
+      build_version: ${{ steps.build_version.outputs.build_version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.version.outputs.publish_ref || github.context.commit }}
+      - uses: ./.github/actions/build
+        with:
+          python-version: ${{ matrix.python-version }}
+          push-artifacts: ${{ matrix.push-artifacts }}
+      - id: build_version
+        if: matrix.push-artifacts
+        run: |
+          python -m pip install tbump
+          tbump current-version
+          echo "::set-output name=build_version::$( tbump current-version )"
+  publish-testpypi:
+    # then publish on test.pypi.org
+    needs: build
+    runs-on: ubuntu-latest
+    if: always() && needs.build.result == 'success' && github.ref_protected
+    environment: testpypi
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          echo "${{ toJson(needs.build.outputs.build_version) }}"
+      - uses: ./.github/actions/publish
+        with:
+          build_version: ${{ needs.build.outputs.build_version }}
+          allow_prerelease: true
+          publish_required: false
+          sign_required: false
+          sign_key_uuid: httpieovhauth@gmail.com
+          pypi_repository_url: https://test.pypi.org/legacy/
+          pypi_token: ${{ secrets.PYPI_TOKEN }}
+          sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    if: always() && needs.build.result == 'success' && github.ref_name == 'main'
+    environment: pypi
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/publish
+        with:
+          build_version: ${{ needs.build.outputs.build_version }}
+          allow_prerelease: false
+          publish_required: true
+          sign_required: true
+          sign_key_uuid: httpieovhauth@gmail.com
+          pypi_repository_url: https://upload.pypi.org/legacy/
+          pypi_token: ${{ secrets.PYPI_TOKEN }}
+          sign_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          sign_key_passphrase: ${{ secrets.GPG_PASSPHRASE }}

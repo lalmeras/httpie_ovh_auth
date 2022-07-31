@@ -4,23 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-httpie-ovh-auth = {editable = true, path = "."}
-
-[dev-packages]
-ipdb = {}
-tox = {}
-mock = ">=2.0.0"
-pexpect = ">=4.2.1"
-pytest = ">=3.0.6"
-pytest-cov = ">=2.4.0"
-mypy = {}
-httpie = "*"
-pyls = "*"
-twine = "*"
-bump2version = "*"
-pylint = "*"
-rope = "*"
-black = "==20.8b1"
+httpie-ovh-auth = {path = ".", editable = true, extras=["dev", "test"]}
 
 [requires]
 python_version = "3"
